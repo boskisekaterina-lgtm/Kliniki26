@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Скрипт продавца — Конгресс «Управление частной клиникой»</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Georgia', serif; background: #f7f6f2; color: #1a1a1a; line-height: 1.65; }
+
+  header { background: #1a3a2a; color: #fff; padding: 28px 40px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  header .badge { background: #3aaa5d; color: #fff; font-family: 'Arial', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 3px; white-space: nowrap; }
+  header h1 { font-size: 20px; font-weight: 400; }
+  header h1 strong { font-weight: 700; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 40px 24px 60px; }
+
+  /* DOSSIER */
+  .dossier-panel { background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.10); margin-bottom: 32px; overflow: hidden; border: 2px solid #1a3a2a; }
+  .dossier-header { background: #1a3a2a; color: #fff; padding: 14px 22px; display: flex; align-items: center; gap: 10px; font-family: 'Arial', sans-serif; font-size: 14px; font-weight: 700; }
+  .dossier-body { padding: 20px 22px; }
+  .site-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .site-row input { flex: 1; border: 1px solid #ddd; border-radius: 5px; padding: 9px 14px; font-family: 'Arial', sans-serif; font-size: 14px; color: #333; }
+  .site-row input:focus { outline: none; border-color: #3aaa5d; }
+  .site-row input::placeholder { color: #aaa; }
+  .btn-analyze { background: #3aaa5d; color: #fff; border: none; border-radius: 5px; padding: 9px 22px; font-family: 'Arial', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .btn-analyze:hover { background: #2a8a45; }
+  .btn-analyze:disabled { background: #ccc; cursor: not-allowed; }
+  .dossier-status { font-family: 'Arial', sans-serif; font-size: 13px; color: #888; min-height: 20px; margin-bottom: 6px; }
+  .dossier-status.loading { color: #3aaa5d; }
+  .dossier-status.error { color: #d84040; }
+  .dossier-status.ok { color: #3aaa5d; font-weight: 600; }
+  .dossier-result { display: none; background: #f2faf5; border: 1px solid #b0dfc0; border-radius: 8px; padding: 16px 18px; margin-top: 10px; }
+  .dossier-result.visible { display: block; }
+  .dossier-company-name { font-size: 17px; font-weight: 700; color: #1a3a2a; margin-bottom: 10px; font-family: 'Arial', sans-serif; }
+  .dossier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 600px) { .dossier-grid { grid-template-columns: 1fr; } }
+  .dossier-card { background: #fff; border-radius: 6px; padding: 10px 14px; border: 1px solid #c5e8d0; }
+  .dossier-card .dc-label { font-family: 'Arial', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #3aaa5d; margin-bottom: 4px; }
+  .dossier-card .dc-value { font-family: 'Arial', sans-serif; font-size: 13px; color: #222; line-height: 1.4; }
+  .adapted-script-block { background: #1a3a2a; border-radius: 8px; padding: 16px 18px; margin-top: 12px; }
+  .adapted-script-block .as-label { font-family: 'Arial', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #7de0a0; margin-bottom: 10px; display: block; }
+  .adapted-script-block .as-item { background: rgba(255,255,255,0.08); border-left: 3px solid #3aaa5d; border-radius: 0 5px 5px 0; padding: 10px 14px; margin-bottom: 8px; font-style: italic; font-size: 14px; color: #e8f5ee; line-height: 1.55; }
+  .adapted-script-block .as-tag { display: inline-block; background: #3aaa5d; color: #fff; font-family: 'Arial', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-bottom: 5px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #c0e0d0; border-top-color: #3aaa5d; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* STAGES */
+  .stage { background: #fff; border-radius: 8px; margin-bottom: 24px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .stage-header { display: flex; align-items: center; gap: 16px; padding: 16px 24px; cursor: pointer; user-select: none; }
+  .stage-header:hover { background: #f6faf7; }
+  .stage-num { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Arial', sans-serif; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .stage-title { flex: 1; font-size: 16px; font-weight: 600; }
+  .stage-sub { font-family: 'Arial', sans-serif; font-size: 11px; color: #888; letter-spacing: 0.8px; text-transform: uppercase; font-weight: 400; display: block; margin-top: 2px; }
+  .toggle-icon { font-size: 20px; color: #bbb; transition: transform 0.25s; font-family: 'Arial', sans-serif; }
+  .stage.open .toggle-icon { transform: rotate(180deg); }
+  .stage-body { display: none; border-top: 1px solid #f0ede6; padding: 20px 24px 24px; }
+  .stage.open .stage-body { display: block; }
+
+  .speech { background: #eef7f1; border-left: 4px solid #3aaa5d; border-radius: 0 6px 6px 0; padding: 12px 16px; margin: 10px 0; font-style: italic; font-size: 15px; }
+  .speech.alt { background: #eef4ff; border-left-color: #3a6fd8; }
+  .tip { background: #fffbec; border: 1px solid #f0d080; border-radius: 6px; padding: 10px 14px; font-family: 'Arial', sans-serif; font-size: 13px; color: #7a5800; margin: 10px 0; }
+  .tip strong { display: block; margin-bottom: 3px; }
+  .objection-block { margin: 10px 0; }
+  .objection { background: #fff0f0; border-left: 4px solid #d84040; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 14px; font-family: 'Arial', sans-serif; color: #7a1a1a; margin-bottom: 4px; }
+  .answer { background: #f0faf2; border-left: 4px solid #3aaa5d; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 14px; font-family: 'Arial', sans-serif; color: #1a4a2a; }
+  .label { font-family: 'Arial', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #999; margin-top: 16px; margin-bottom: 6px; display: block; }
+  .s1 .stage-num { background: #3aaa5d; }
+  .s2 .stage-num { background: #2a8a8a; }
+  .s3 .stage-num { background: #3a6fd8; }
+  .s4 .stage-num { background: #e8a020; }
+  .s5 .stage-num { background: #d84040; }
+  .s6 .stage-num { background: #1a3a2a; }
+  .checklist { list-style: none; margin: 6px 0; }
+  .checklist li { font-family: 'Arial', sans-serif; font-size: 14px; padding: 4px 0 4px 22px; position: relative; color: #333; }
+  .checklist li::before { content: '✓'; position: absolute; left: 0; color: #3aaa5d; font-weight: 700; }
+  .cross-list li::before { content: '✗'; color: #d84040; }
+  .divider { border: none; border-top: 1px solid #e8e3d8; margin: 16px 0; }
+  .quick-fact-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
+  .quick-fact { background: #1a3a2a; color: #fff; border-radius: 6px; padding: 10px 16px; font-family: 'Arial', sans-serif; flex: 1; min-width: 130px; }
+  .quick-fact .num { font-size: 20px; font-weight: 700; color: #7de0a0; }
+  .quick-fact .desc { font-size: 12px; color: #a0c0a8; margin-top: 2px; }
+  .close-block { background: #1a3a2a; color: #fff; border-radius: 8px; padding: 20px 24px; margin-top: 10px; }
+  .close-block .speech { background: rgba(255,255,255,0.1); border-left-color: #7de0a0; color: #fff; font-size: 15px; }
+  .close-block .label { color: #7de0a0; }
+
+  /* Program topics */
+  .program-block { background: #f2faf5; border-radius: 8px; padding: 14px 16px; margin: 10px 0; border-left: 4px solid #3aaa5d; }
+  .program-block .pb-title { font-family: 'Arial', sans-serif; font-size: 13px; font-weight: 700; color: #1a3a2a; margin-bottom: 6px; }
+  .program-block .pb-time { font-family: 'Arial', sans-serif; font-size: 11px; color: #3aaa5d; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .program-block ul { list-style: none; padding: 0; }
+  .program-block ul li { font-family: 'Arial', sans-serif; font-size: 13px; color: #333; padding: 2px 0 2px 16px; position: relative; }
+  .program-block ul li::before { content: '·'; position: absolute; left: 4px; color: #3aaa5d; font-weight: 700; }
+
+  @media (max-width: 600px) {
+    header { padding: 20px 16px; }
+    .container { padding: 20px 12px 40px; }
+    .stage-header { padding: 14px 16px; }
+    .stage-body { padding: 16px 16px 20px; }
+    .site-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">Скрипт продавца</div>
+  <h1><strong>XV Конгресс «Управление частной клиникой»</strong> · Москва · Империя Форум</h1>
+</header>
+
+<div class="container">
+
+  <!-- DOSSIER -->
+  <div class="dossier-panel">
+    <div class="dossier-header">
+      <span>🔍</span>
+      Досье на клинику — адаптация скрипта
+    </div>
+    <div class="dossier-body">
+      <div class="site-row">
+        <input type="text" id="siteUrl" placeholder="Сайт клиники, например: medclinic-moscow.ru" />
+        <button class="btn-analyze" id="btnAnalyze" onclick="runAnalysis()">Собрать досье</button>
+      </div>
+      <div class="dossier-status" id="dossierStatus"></div>
+      <div class="dossier-result" id="dossierResult">
+        <div class="dossier-company-name" id="companyName"></div>
+        <div class="dossier-grid" id="dossierGrid"></div>
+        <div class="adapted-script-block" id="adaptedScript"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAGE 1 -->
+  <div class="stage s1 open">
+    <div class="stage-header" onclick="toggle(this)">
+      <div class="stage-num">1</div>
+      <div class="stage-title">Установление контакта<span class="stage-sub">Первые 30 секунд</span></div>
+      <div class="toggle-icon">▾</div>
+    </div>
+    <div class="stage-body">
+      <span class="label">Приветствие</span>
+      <div class="speech">Добрый день, [Имя]! Меня зовут [Ваше имя], Империя Форум. Есть минута?</div>
+      <span class="label">Если да</span>
+      <div class="speech">Мы проводим ежегодный конгресс для собственников и руководителей частных клиник — «Управление частной клиникой». Вы руководите клиникой?</div>
+      <div class="tip"><strong>💡 Совет</strong>Говорите «конгресс для руководителей клиник», не «мероприятие» — это сразу задаёт нужный уровень.</div>
+      <span class="label">Если неудобно говорить</span>
+      <div class="speech alt">Хорошо, когда перезвонить — сегодня после обеда или завтра утром?</div>
+    </div>
+  </div>
+
+  <!-- STAGE 2 -->
+  <div class="stage s2">
+    <div class="stage-header" onclick="toggle(this)">
+      <div class="stage-num">2</div>
+      <div class="stage-title">Квалификация<span class="stage-sub">Убедитесь, что подходит</span></div>
+      <div class="toggle-icon">▾</div>
+    </div>
+    <div class="stage-body">
+      <span class="label">Вопросы (по одному)</span>
+      <div class="speech">Вы собственник или главный врач?</div>
+      <div class="speech">Сколько лет клиника на рынке? Один филиал или сеть?</div>
+      <div class="speech">Какие задачи сейчас актуальны — кадры, рентабельность, юридика?</div>
+      <hr class="divider">
+      <span class="label">Кому подходит ✓</span>
+      <ul class="checklist">
+        <li>Собственники и руководители частных клиник</li>
+        <li>Главные врачи с управленческими функциями</li>
+        <li>Клиники любого профиля и размера</li>
+        <li>Те, кто планирует масштабирование или оптимизацию</li>
+      </ul>
+      <span class="label">Кому НЕ подходит ✗</span>
+      <ul class="checklist cross-list">
+        <li>Государственные учреждения</li>
+        <li>Врачи без управленческих задач</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- STAGE 3 -->
+  <div class="stage s3">
+    <div class="stage-header" onclick="toggle(this)">
+      <div class="stage-num">3</div>
+      <div class="stage-title">Боль и ценность<span class="stage-sub">Зацепите проблему</span></div>
+      <div class="toggle-icon">▾</div>
+    </div>
+    <div class="stage-body">
+      <span class="label">Факты рынка</span>
+      <div class="quick-fact-row">
+        <div class="quick-fact"><div class="num">1,78 трлн</div><div class="desc">рынок частной медицины в России</div></div>
+        <div class="quick-fact"><div class="num">14,4%</div><div class="desc">медицинская инфляция — в 2,5 раза выше общей</div></div>
+        <div class="quick-fact"><div class="num">23 тыс.</div><div class="desc">нехватка врачей — кадровый кризис</div></div>
+        <div class="quick-fact"><div class="num">60%</div><div class="desc">заявок поступают после 20:00, когда клиника закрыта</div></div>
+      </div>
+      <span class="label">Презентация</span>
+      <div class="speech">Себестоимость растёт быстрее выручки, врачей не хватает, государственные клиники всё активнее конкурируют за платёжеспособного пациента. При этом с марта 2026 года частные клиники фактически отрезаны от потока выпускников медвузов. Как в этих условиях расти, а не выживать?</div>
+      <div class="speech">На конгрессе собственники клиник разбирают это вместе — с экспертами и коллегами из разных регионов. Один день, живые кейсы, готовые решения.</div>
+      <div class="tip"><strong>🎯 Триггер под боль</strong>Кадры: «После марта 2026 частные клиники отрезаны от бюджетных выпускников — на конгрессе разбирают где искать и как удержать.»<br>Деньги: «60% заявок приходят после 20:00 — клиника просто теряет треть потока. Есть блок именно об этом.»<br>Юридика: «Штрафы за нарушения ЕГИСЗ до 200 тысяч, за персданные — до 15 млн. Разбираем как защититься.»</div>
+    </div>
+  </div>
+
+  <!-- STAGE 4 -->
+  <div class="stage s4">
+    <div class="stage-header" onclick="toggle(this)">
+      <div class="stage-num">4</div>
+      <div class="stage-title">Программа<span class="stage-sub">4 блока за один день</span></div>
+      <div class="toggle-icon">▾</div>
+    </div>
+    <div class="stage-body">
+      <span class="label">Коротко о формате</span>
+      <div class="speech">Один день в Москве, четыре больших блока. Утром — стратегия и ИИ-трансформация. После обеда — финансы и кадры. Вечером — нетворкинг со спикерами. Всё с живыми кейсами клиник.</div>
+
+      <div class="program-block">
+        <div class="pb-time">09:00 — Открытие</div>
+        <div class="pb-title">Стратегия частной медицины 2026–2027</div>
+        <ul><li>Куда движется рынок, кто захватывает долю</li><li>Как конкурировать с госклиниками</li><li>Цифровизация и ИИ: что реально работает</li></ul>
+      </div>
+
+      <div class="program-block">
+        <div class="pb-time">11:30 — Юридика</div>
+        <div class="pb-title">Правовая безопасность клиники</div>
+        <ul><li>Новые штрафы Росздравнадзора и ЕГИСЗ</li><li>Персональные данные: как не получить штраф до 15 млн</li><li>Пациентский экстремизм — защита врачей и клиники</li></ul>
+      </div>
+
+      <div class="program-block">
+        <div class="pb-time">14:00 — Финансы</div>
+        <div class="pb-title">Как увеличить прибыль в условиях медицинской инфляции</div>
+        <ul><li>Рентабельность 15–20%: реальные кейсы</li><li>ОМС и ДМС — где выгодно, где клиника дотирует систему</li><li>Как не терять 30% пациентов через сайт</li></ul>
+      </div>
+
+      <div class="program-block">
+        <div class="pb-time">16:00 — Кадры</div>
+        <div class="pb-title">Нет врачей — нет прибыли</div>
+        <ul><li>Где искать врачей после ФЗ-424</li><li>Система мотивации без конфликта с этикой</li><li>Как стать работодателем мечты</li></ul>
+      </div>
+
+      <div class="program-block">
+        <div class="pb-time">17:40 — Нетворкинг</div>
+        <div class="pb-title">Общение со спикерами и коллегами-руководителями</div>
+        <ul><li>Тематические локации по блокам программы</li><li>Фуршет, обмен контактами</li></ul>
+      </div>
+
+      <span class="label">Спикеры — кто выступает</span>
+      <div class="speech alt">Управляющий партнёр Клиники Рассвет, собственник сети МИА.РФ с оборотом 2 млрд, медицинский адвокат с 20 годами практики, эксперты Сколково и Минздрава. Не теоретики — практики с работающими клиниками.</div>
+    </div>
+  </div>
+
+  <!-- STAGE 5 -->
+  <div class="stage s5">
+    <div class="stage-header" onclick="toggle(this)">
+      <div class="stage-num">5</div>
+      <div class="stage-title">Возражения<span class="stage-sub">Типичные ответы</span></div>
+      <div class="toggle-icon">▾</div>
+    </div>
+    <div class="stage-body">
+      <div class="objection-block">
+        <div class="objection">«Мы уже ездим на такие конференции»</div>
+        <div class="answer">Это не обычная конференция со стендами. Один день, только практика — кейсы клиник с цифрами, разбор реальных ситуаций. Плюс нетворкинг со спикерами лично.</div>
+      </div>
+      <div class="objection-block">
+        <div class="objection">«Нет времени, некому оставить клинику»</div>
+        <div class="answer">Понимаю. Именно поэтому формат — один день. Многие приезжают одни, без команды. Зато возвращаются с готовыми решениями, которые сразу можно внедрять.</div>
+      </div>
+      <div class="objection-block">
+        <div class="objection">«Это для больших сетей, у нас маленькая клиника»</div>
+        <div class="answer">Специально есть блок про малые клиники — как найти бюджет, сократить затраты и выйти в плюс без штата бухгалтеров. Спикер — владелец узкопрофильной клиники.</div>
+      </div>
+      <div class="objection-block">
+        <div class="objection">«Пришлите программу на почту»</div>
+        <div class="answer">Пришлю. Скажите — что сейчас болит больше всего: кадры, рентабельность или юридика? Покажу где именно это разбирается на конгрессе.</div>
+      </div>
+      <div class="objection-block">
+        <div class="objection">«Дорого»</div>
+        <div class="answer">Один кейс по защите от пациентского экстремизма или один инструмент увеличения потока — окупают участие многократно. Это не расходы, это инвестиция в день.</div>
+      </div>
+      <div class="objection-block">
+        <div class="objection">«Далеко ехать, мы не в Москве»</div>
+        <div class="answer">На конгрессе всегда много региональных клиник — именно они говорят, что нетворкинг с московскими коллегами и спикерами стоит поездки. Плюс можно совместить с другими делами в Москве.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAGE 6 -->
+  <div class="stage s6">
+    <div class="stage-header" onclick="toggle(this)">
+      <div class="stage-num">6</div>
+      <div class="stage-title">Закрытие<span class="stage-sub">Зафиксируйте участие</span></div>
+      <div class="toggle-icon">▾</div>
+    </div>
+    <div class="stage-body">
+      <div class="close-block">
+        <span class="label">Прямое</span>
+        <div class="speech">Тогда записываю вас. Назовите имя, должность и e-mail — пришлю программу и счёт. Один человек или с командой?</div>
+        <span class="label">Мягкое (если колеблется)</span>
+        <div class="speech">Пришлю программу прямо сейчас. Посмотрите до конца дня — если вопросы, звоните.</div>
+        <span class="label">Через срочность</span>
+        <div class="speech">Мест ограничено — зал рассчитан на определённое количество участников. Если интересно — лучше зафиксировать сегодня.</div>
+      </div>
+      <hr class="divider">
+      <span class="label">Если берут несколько мест</span>
+      <div class="speech">Если едут двое и больше — уточните, есть ли групповые условия. Часто это существенная экономия.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggle(header) { header.parentElement.classList.toggle('open'); }
+
+  const PROXY_URL = 'https://frp-proxy-jet.vercel.app/api/proxy';
+
+  async function runAnalysis() {
+    const rawUrl = document.getElementById('siteUrl').value.trim();
+    if (!rawUrl) { setStatus('Введите сайт клиники', 'error'); return; }
+    const url = rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl;
+
+    document.getElementById('btnAnalyze').disabled = true;
+    document.getElementById('dossierResult').classList.remove('visible');
+    setStatus('<span class="spinner"></span>Изучаю клинику...', 'loading');
+
+    const systemPrompt = `Ты — эксперт по рынку частной медицины России.
+Задача: по сайту клиники составить досье и адаптировать скрипт продавца для продажи участия в конгрессе «Управление частной клиникой» (Москва, Империя Форум).
+
+Используй веб-поиск чтобы изучить сайт клиники.
+
+Верни ТОЛЬКО валидный JSON без markdown:
+{
+  "company_name": "Название клиники",
+  "specialty": "Профиль / специализация",
+  "scale": "Размер: один филиал / сеть, город",
+  "audience_fit": "Почему руководителю этой клиники нужен конгресс (1-2 предложения)",
+  "pain": "Главная боль этой клиники исходя из её профиля и размера",
+  "greeting": "Персональное приветствие с упоминанием профиля клиники",
+  "hook": "Крючок — почему именно этой клинике важно приехать (2-3 предложения, от первого лица продавца)",
+  "objection_hint": "Вероятное возражение и короткий ответ на него"
+}`;
+
+    const userPrompt = `Сайт клиники: ${url}
+Изучи через веб-поиск и составь досье + адаптированный скрипт для продажи участия в конгрессе «Управление частной клиникой».`;
+
+    try {
+      const messages = [{ role: 'user', content: userPrompt }];
+      let finalText = '';
+      let iterations = 0;
+
+      while (iterations < 8) {
+        iterations++;
+        const resp = await fetch(PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2000,
+            system: systemPrompt,
+            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+            messages
+          })
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        messages.push({ role: 'assistant', content: data.content });
+
+        const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
+        if (toolUseBlocks.length > 0) {
+          setStatus('<span class="spinner"></span>Ищу информацию о клинике...', 'loading');
+          const toolResults = toolUseBlocks.map(b => ({ type: 'tool_result', tool_use_id: b.id, content: [] }));
+          messages.push({ role: 'user', content: toolResults });
+          continue;
+        }
+
+        finalText = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+        break;
+      }
+
+      if (!finalText) throw new Error('Пустой ответ. Попробуйте ещё раз.');
+      const jsonMatch = finalText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Модель не вернула JSON. Попробуйте ещё раз.');
+
+      const info = JSON.parse(jsonMatch[0]);
+      renderDossier(info, url);
+      setStatus('✓ Досье готово', 'ok');
+
+    } catch (e) {
+      setStatus('Ошибка: ' + e.message, 'error');
+    } finally {
+      document.getElementById('btnAnalyze').disabled = false;
+    }
+  }
+
+  function renderDossier(d, url) {
+    document.getElementById('companyName').textContent = d.company_name || url;
+    const gridFields = [
+      { label: 'Профиль', value: d.specialty },
+      { label: 'Масштаб', value: d.scale },
+      { label: 'Подходит конгресс', value: d.audience_fit },
+      { label: 'Главная боль', value: d.pain },
+    ];
+    document.getElementById('dossierGrid').innerHTML = gridFields
+      .filter(f => f.value)
+      .map(f => `<div class="dossier-card"><div class="dc-label">${f.label}</div><div class="dc-value">${f.value}</div></div>`)
+      .join('');
+
+    const scriptItems = [
+      { tag: 'Приветствие', text: d.greeting },
+      { tag: 'Крючок', text: d.hook },
+      { tag: 'Вероятное возражение', text: d.objection_hint },
+    ].filter(i => i.text);
+
+    document.getElementById('adaptedScript').innerHTML =
+      `<span class="as-label">🎯 Адаптированный скрипт для этой клиники</span>` +
+      scriptItems.map(i => `<div class="as-item"><span class="as-tag">${i.tag}</span><br>${i.text}</div>`).join('');
+
+    document.getElementById('dossierResult').classList.add('visible');
+  }
+
+  function setStatus(msg, type) {
+    const el = document.getElementById('dossierStatus');
+    el.innerHTML = msg;
+    el.className = 'dossier-status ' + (type || '');
+  }
+</script>
+</body>
+</html>
